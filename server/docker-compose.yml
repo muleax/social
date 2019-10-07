@@ -1,0 +1,21 @@
+version: '3'
+
+services:
+  social-mysql:
+    image: mysql
+    ports:
+      - "3306:3306"
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=qwerty
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=database
+
+  social-server:
+    image: social-server
+    ports:
+      - "5433:5433"
+    restart: always
