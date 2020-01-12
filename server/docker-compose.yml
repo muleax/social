@@ -8,11 +8,8 @@ services:
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=qwerty
-      - MYSQL_ROOT_HOST=%
-      - MYSQL_ALLOW_EMPTY_PASSWORD=yes
-      - MYSQL_USER=user
-      - MYSQL_PASSWORD=password
-      - MYSQL_DATABASE=database
+      #- MYSQL_USER=user
+      #- MYSQL_PASSWORD=password
 
   nginx-proxy:
     image: nginx-proxy
