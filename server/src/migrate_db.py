@@ -1,6 +1,6 @@
 import sys
-import pymysql
 import time
+import pymysql
 from constants import *
 
 

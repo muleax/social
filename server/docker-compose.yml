@@ -2,7 +2,7 @@ version: '3'
 
 services:
   social-mysql:
-    image: mysql
+    image: mysql:8.0.18
     ports:
       - "3306:3306"
     restart: always
@@ -14,8 +14,17 @@ services:
       - MYSQL_PASSWORD=password
       - MYSQL_DATABASE=database
 
-  social-server:
-    image: social-server
+  nginx-proxy:
+    image: nginx-proxy
     ports:
-      - "5433:5433"
+      - "80:80"
+
+  app-server:
+    image: app-server
+    ports:
+      - "8000:8000"
     restart: always
+
+  provision:
+    image: app-server
+    entrypoint: ./entrypoint.prov.sh
