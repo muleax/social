@@ -4,7 +4,7 @@ services:
   social-mysql:
     image: mysql:8.0.18
     ports:
-      - "3306:3306"
+      - "3307:3306"
     restart: always
     environment:
       - MYSQL_ROOT_PASSWORD=qwerty
