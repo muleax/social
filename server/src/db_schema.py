@@ -5,9 +5,10 @@ USERS_TABLE = 'users'
 
 TABLES = {
     USERS_TABLE: {
-        'first_name': 'varchar(255)',
-        'last_name': 'varchar(255)',
-        'city': 'varchar(255)',
-        'udata': 'json'
+        'id': 'INT NOT NULL AUTO_INCREMENT PRIMARY KEY',
+        'first_name': 'VARCHAR(255)',
+        'last_name': 'VARCHAR(255)',
+        'city': 'VARCHAR(255)',
+        'udata': 'JSON'
     }
 }

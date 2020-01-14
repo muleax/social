@@ -4,37 +4,74 @@ class App extends React.Component {
         super(props);
         this.state = {
             header: 'Social',
-            users: null,
+            newUserData: null,
             newUser : {
                 firstName: '',
                 lastName: '',
                 city: ''
+            },
+            userListData: null,
+            userList : {
+                offset: 0,
+                limit: 5
+            },
+            getUserData: null,
+            getUser : {
+                id: 0
             }
         };
     }
 
-    async createUser() {
-        let response = await axios.post('/create_user', this.state.newUser);
+    createUser = async () => {
+        try {
+            let response = await axios.post('/create_user', this.state.newUser);
+            console.log(response);
+            this.setState({newUserData: `${response.data}`});
+        } catch (e) {
+            this.setState({newUserData: 'FAIL'});
+            throw e;
+        }
+    }
+
+    userList = async () => {
+        let response = await axios.get('/user_list', { params: this.state.userList });
         console.log(response);
+
+        let data = JSON.stringify(response.data, null, 2);
+        this.setState({ userListData: data });
     }
 
-    async updateUsers() {
-        let response = await axios.get('/users');
+    getUser = async () => {
+        let response = await axios.get('/user', { params: this.state.getUser });
         console.log(response);
-        this.setState({users: JSON.stringify(response.data, null, 2)});
+
+        let data = JSON.stringify(response.data, null, 2);
+        this.setState({ getUserData: data });
     }
 
-    onNewUserChange = e => {
-        let newUser = Object.assign({}, this.state.newUser);
-        newUser[e.target.name] = e.target.value;
-        this.setState({ newUser })
-    }
+    // TODO: move to separate components
+    onNewUserChange = e => this.setState({ newUser: {...this.state.newUser, [e.target.name]:  e.target.value} });
+    onUserListChange = e => this.setState({ userList: {...this.state.userList, [e.target.name]:  e.target.value} });
+    onGetUserChange = e => this.setState({ getUser: {...this.state.getUser, [e.target.name]:  e.target.value} });
 
-    renderUsers() {
+    renderUserList() {
+        const userList = this.state.userList;
         return (
             <div>
-                <button onClick={async () => await this.updateUsers()} type='button'>Update Users</button>
-                <pre>{this.state.users}</pre>
+                <input
+                    placeholder = "Offset"
+                    name = "offset"
+                    value = {userList.offset}
+                    onChange = {this.onUserListChange}
+                />
+                <input
+                    placeholder = "Limit"
+                    name = "limit"
+                    value = {userList.limit}
+                    onChange = {this.onUserListChange}
+                />
+                <button onClick={this.userList} type='button'>Get User List</button>
+                <pre>{this.state.userListData}</pre>
             </div>
         );
     }
@@ -65,9 +102,26 @@ class App extends React.Component {
                         value={newUser.city}
                         onChange={this.onNewUserChange}
                     />
-                    <button onClick={async () => await this.createUser()} type='button'>Create User</button>
+                    <button onClick={this.createUser} type='button'>Create User</button>
+                    <pre>{this.state.newUserData}</pre>
                 </div>
             </form>
+        );
+    }
+
+    renderGetUser() {
+        const getUser = this.state.getUser;
+        return (
+            <div>
+                <input
+                    placeholder = "ID"
+                    name = "id"
+                    value = {getUser.id}
+                    onChange = {this.onGetUserChange}
+                />
+                <button onClick = {this.getUser} type = 'button'>Get User</button>
+                <pre>{this.state.getUserData}</pre>
+            </div>
         );
     }
 
@@ -76,7 +130,8 @@ class App extends React.Component {
             <div>
                 <h3>{this.state.header}</h3>
                 {this.renderCreateUser()}
-                {this.renderUsers()}
+                {this.renderGetUser()}
+                {this.renderUserList()}
             </div>
         );
     }

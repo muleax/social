@@ -20,7 +20,9 @@ def create_tables(connection):
     cursor.execute(f'USE {DATABASE};')
     for table_name, table_schema in TABLES.items():
         table_def = ', '.join(f'{field_name} {field_type}' for field_name, field_type in table_schema.items())
-        cursor.execute(f'CREATE TABLE {table_name}({table_def});')
+        query = f'CREATE TABLE {table_name}({table_def});'
+        logging.info(query)
+        cursor.execute(query)
 
     connection.commit()
 
@@ -33,8 +35,13 @@ def add_test_users(connection):
     connection.select_db(DATABASE)
 
     cursor = connection.cursor()
-    cursor.execute(f"INSERT INTO {USERS_TABLE} VALUES ('Sanya', 'Ivanov', 'Minsk', '{{}}');")
-    cursor.execute(f"INSERT INTO {USERS_TABLE} VALUES ('Kolya', 'Dvoechka', 'Moscow', '{{}}');")
-    cursor.execute(f"INSERT INTO {USERS_TABLE} VALUES ('Nastik', 'Kotik', 'Lipetsk', '{{}}');")
+
+    test_users = (('Sanya', 'Ivanov', 'Minsk', {}),
+                  ('Kolya', 'Dvoechka', 'Moscow', {}),
+                  ('Nastik', 'Kotik', 'Lipetsk', {}))
+
+    for fn, ln, city, udata in test_users:
+        cursor.execute(f"INSERT INTO {USERS_TABLE} (first_name, last_name, city, udata)\
+                         VALUES ('{fn}', '{ln}', '{city}', '{udata}');")
 
     connection.commit()
