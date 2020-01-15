@@ -2,7 +2,8 @@ import sys
 import logging
 import argparse
 import asyncio
-from create_tables import *
+from db_create_tables import *
+from db_dev_utils import *
 from db_connection import open_connection
 
 
@@ -23,7 +24,11 @@ async def main():
 
     if is_fresh_db(connection):
         create_tables(connection)
-        add_test_users(connection)
+        connection.commit()
+        if IS_DEVELOPMENT:
+            create_test_users(connection)
+            connection.commit()
+
         logging.info("Database initialized")
     else:
         # TODO: proper migration

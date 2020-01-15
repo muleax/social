@@ -1,6 +1,13 @@
 
+IS_DEVELOPMENT = True
+
 class STATUS:
     OK = 'OK'
     FAIL = 'FAIL'
+
+class AUTH:
+    JWT_SECRET = 'Oops'
+    LOGIN_MAX_SIZE = 63
+    PASSWORD_MAX_SIZE = 63
 
 GET_USERS_LIMIT = 5

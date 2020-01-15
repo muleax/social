@@ -6,17 +6,61 @@ from constants import *
 import json
 
 
-async def create_user(request):
+async def create_account(request):
+    auth = await request.json()
+    logging.info(f'Create account {auth}')
+
+    # TODO: async db abstraction model
+    conn = request.app.db
+    try:
+        conn.autocommit(False)
+
+        conn.begin()
+        cursor = conn.cursor()
+        cursor.execute(f"INSERT INTO {AUTH_TABLE} (login, password)\
+                         VALUES ('{auth['login']}', '{auth['password']}')")
+
+        cursor.execute("SELECT LAST_INSERT_ID()")
+        user_id = cursor.fetchone()['LAST_INSERT_ID()']
+
+        cursor.execute(f"INSERT INTO {USERS_TABLE} (id, first_name, last_name, city, udata)\
+                         VALUES ('{user_id}', '', '', '', '{{}}')")
+
+    except Exception as err:
+        logging.exception(err)
+        conn.rollback()
+        return web.Response(text=f"{STATUS.FAIL}\n")
+
+    else:
+        conn.commit()
+        return web.Response(text=f"{STATUS.OK}\n")
+
+    finally:
+        # TODO: reconsider
+        conn.autocommit(True)
+
+
+async def update_user(request):
     user_data = await request.json()
-    logging.info(f'Create user {user_data}')
+    logging.info(f'Update user {user_data}')
 
-    # TODO: db abstraction model
-    cursor = request.app.db.cursor()
-    cursor.execute(f"INSERT INTO {USERS_TABLE} (first_name, last_name, city, udata)\
-                     VALUES ('{user_data['firstName']}', '{user_data['lastName']}', '{user_data['city']}', '{{}}');")
+    try:
+        cursor = request.app.db.cursor()
+        cursor.execute(f"UPDATE {USERS_TABLE}\
+                         SET\
+                            first_name = '{user_data['firstName']}',\
+                            last_name = '{user_data['lastName']}',\
+                            city = '{user_data['city']}',\
+                            udata = '{user_data['udata']}'\
+                         WHERE\
+                            id = {user_data['id']}")
 
-    # request.app.db.commit()
-    return web.Response(text=f"{STATUS.OK}\n")
+    except Exception as err:
+        logging.exception(err)
+        return web.Response(text=f"{STATUS.FAIL}\n")
+
+    else:
+        return web.Response(text=f"{STATUS.OK}\n")
 
 
 async def user_list(request):
@@ -43,9 +87,10 @@ async def user(request):
 
 
 def create_routes(app):
+    app.router.add_post('/create_account', create_account)
+    app.router.add_post('/update_user', update_user)
     app.router.add_get('/user', user)
     app.router.add_get('/user_list', user_list)
-    app.router.add_post('/create_user', create_user)
 
 
 def app_factory(db_host, db_port, db_user, db_password):
@@ -60,7 +105,7 @@ def app_factory(db_host, db_port, db_user, db_password):
             logging.info('Worker connected to db')
             create_routes(app)
         else:
-            logging.info('Worker failed to connect to db')
+            logging.info('Worker failed to connect to db!')
             # TODO
 
     app.on_startup.append(on_startup)

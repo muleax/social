@@ -3,12 +3,15 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            header: 'Social',
+            header: 'User 1',
             newUserData: null,
             newUser : {
+                // TODO: auth
+                id: 1,
                 firstName: '',
                 lastName: '',
-                city: ''
+                city: '',
+                udata: {}
             },
             userListData: null,
             userList : {
@@ -22,9 +25,9 @@ class App extends React.Component {
         };
     }
 
-    createUser = async () => {
+    updateUser = async () => {
         try {
-            let response = await axios.post('/create_user', this.state.newUser);
+            let response = await axios.post('/update_user', this.state.newUser);
             console.log(response);
             this.setState({newUserData: `${response.data}`});
         } catch (e) {
@@ -76,7 +79,7 @@ class App extends React.Component {
         );
     }
 
-    renderCreateUser() {
+    renderUpdateUser() {
         const newUser = this.state.newUser;
         return (
             <form>
@@ -102,7 +105,7 @@ class App extends React.Component {
                         value={newUser.city}
                         onChange={this.onNewUserChange}
                     />
-                    <button onClick={this.createUser} type='button'>Create User</button>
+                    <button onClick={this.updateUser} type='button'>Update User</button>
                     <pre>{this.state.newUserData}</pre>
                 </div>
             </form>
@@ -129,7 +132,7 @@ class App extends React.Component {
         return (
             <div>
                 <h3>{this.state.header}</h3>
-                {this.renderCreateUser()}
+                {this.renderUpdateUser()}
                 {this.renderGetUser()}
                 {this.renderUserList()}
             </div>
