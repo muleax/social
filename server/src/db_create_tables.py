@@ -21,5 +21,3 @@ def create_tables(connection):
         query = f'CREATE TABLE {table_name}({table_def});'
         logging.info(query)
         cursor.execute(query)
-
-    connection.commit()

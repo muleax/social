@@ -18,16 +18,15 @@ async def main():
     print(args)
 
     connection = await open_connection(args.db_host, args.db_port, args.db_user, args.db_password)
+    connection.autocommit(True)
 
     if not connection:
         sys.exit(1)
 
     if is_fresh_db(connection):
         create_tables(connection)
-        connection.commit()
         if IS_DEVELOPMENT:
             create_test_users(connection)
-            connection.commit()
 
         logging.info("Database initialized")
     else:

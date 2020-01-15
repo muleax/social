@@ -13,8 +13,6 @@ async def create_account(request):
     # TODO: async db abstraction model
     conn = request.app.db
     try:
-        conn.autocommit(False)
-
         conn.begin()
         cursor = conn.cursor()
         cursor.execute(f"INSERT INTO {AUTH_TABLE} (login, password)\
@@ -34,10 +32,6 @@ async def create_account(request):
     else:
         conn.commit()
         return web.Response(text=f"{STATUS.OK}\n")
-
-    finally:
-        # TODO: reconsider
-        conn.autocommit(True)
 
 
 async def update_user(request):
