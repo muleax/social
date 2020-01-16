@@ -3,8 +3,8 @@ class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
-            user_id: null,
-            auth_token: null,
+            user_id: localStorage.getItem('user_id'),
+            auth_token: localStorage.getItem('auth_token'),
 
             auth : {
                 login: 'nagibator2005',
@@ -36,6 +36,13 @@ class App extends React.Component {
             },
             getUserResponse: null
         };
+    }
+
+    async componentDidMount() {
+        // TODO: refactore
+        if (this.state.user_id) {
+            await this.updateUserView();
+        }
     }
 
     getUserList = async () => {
@@ -103,6 +110,25 @@ class App extends React.Component {
         );
     }
 
+    updateUserView = async (data) => {
+        if (!data) {
+            let response = await axios.get('/user', { params: {user_id: this.state.user_id} });
+            console.log(response);
+            data = response.data;
+        }
+
+        let userConfirmed = {
+            json: JSON.stringify(data, null, 2),
+            first_name: data.first_name,
+            last_name: data.last_name,
+        }
+
+        this.setState({
+            userConfirmed,
+            user: data,
+        });
+    }
+
     updateUser = async () => {
         try {
             let payload = {
@@ -113,16 +139,11 @@ class App extends React.Component {
             let response = await axios.post('/update_user', payload);
             console.log(response);
 
-            let userConfirmed = {
-                json: JSON.stringify(response.data, null, 2),
-                first_name: response.data.first_name,
-                last_name: response.data.last_name,
-            }
-
             this.setState({
-                userConfirmed,
                 updateUserResponse: `${response.status}`
             });
+
+            this.updateUserView(response.data);
         } catch (e) {
             this.setState({updateUserResponse: e.message})
             throw e;
@@ -166,6 +187,7 @@ class App extends React.Component {
         let userConfirmed = this.state.userConfirmed;
         return (
             <div>
+                <button onClick = {this.logout} type = 'button'>Sign Out</button>
                 <h3> {userConfirmed.first_name} {userConfirmed.last_name} </h3>
                 <pre>{userConfirmed.json}</pre>
                 {this.renderUpdateUser()}
@@ -175,30 +197,32 @@ class App extends React.Component {
         );
     }
 
-    auth = async () => {
+    logout = async () => {
+        this.setState({
+            user_id: null,
+            auth_token: null
+        });
+
+        localStorage.removeItem('user_id');
+        localStorage.removeItem('auth_token');
+    }
+
+    login = async () => {
         try {
             let authResponse = await axios.get('/auth', { params: this.state.auth });
             console.log(authResponse);
             let user_id = authResponse.data.user_id;
+            let auth_token = authResponse.data.auth_token;
             this.setState({
                 user_id,
-                auth_token: authResponse.data.auth_token,
+                auth_token,
                 authResponse: `${authResponse.status}`
             });
 
-            let response = await axios.get('/user', { params: {user_id} });
-            console.log(response);
+            localStorage.setItem('user_id', user_id);
+            localStorage.setItem('auth_token', auth_token);
 
-            let userConfirmed = {
-                json: JSON.stringify(response.data, null, 2),
-                first_name: response.data.first_name,
-                last_name: response.data.last_name,
-            }
-
-            this.setState({
-                userConfirmed,
-                user: response.data,
-            });
+            this.updateUserView();
         } catch (e) {
             this.setState({authResponse: e.message})
             throw e;
@@ -235,7 +259,7 @@ class App extends React.Component {
                     value = {auth.password}
                     onChange = {this.onAuthChange}
                 />
-                <button onClick = {this.auth} type = 'button'>Sign In</button>
+                <button onClick = {this.login} type = 'button'>Sign In</button>
                 <button onClick = {this.createAccount} type = 'button'>Create Account</button>
                 <pre>{this.state.authResponse}</pre>
             </div>
@@ -243,7 +267,7 @@ class App extends React.Component {
     }
 
     render() {
-        if (this.state.auth_token) {
+        if (this.state.auth_token && this.state.user_id) {
             return this.renderHomePage();
         } else {
             return this.renderAuth();
