@@ -5,6 +5,7 @@ from db_schema import *
 
 
 async def open_connection(host, port, user, password):
+    logging.info(f'open mysql connection {host}:{port} {user}:{password}')
     connection = None
     for i in range(10):
         await asyncio.sleep(5)

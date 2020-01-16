@@ -21,11 +21,11 @@ def create_test_users(connection):
         cursor.execute("SELECT LAST_INSERT_ID()")
         user_id = cursor.fetchone()['LAST_INSERT_ID()']
 
-        cursor.execute(f"INSERT INTO {USERS_TABLE} (id, first_name, last_name, city, udata)\
+        cursor.execute(f"INSERT INTO {USERS_TABLE} (user_id, first_name, last_name, city, udata)\
                          VALUES ({user_id}, '{first_name}', '{last_name}', '{city}', '{udata}');")
 
 
-def open_connection_sync(host='localhost', port=3307, user='root', password='qwerty'):
+def open_connection_sync(host='localhost', port=3307, user='root', password=''):
     loop = asyncio.new_event_loop()
     return loop.run_until_complete(db_connection.open_connection(host, port, user, password))
 

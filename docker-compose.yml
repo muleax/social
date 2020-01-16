@@ -7,21 +7,28 @@ services:
       - "3307:3306"
     restart: always
     environment:
-      - MYSQL_ROOT_PASSWORD=qwerty
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+      #- MYSQL_ROOT_PASSWORD=pwd
       #- MYSQL_USER=user
       #- MYSQL_PASSWORD=password
 
   nginx-proxy:
-    image: nginx-proxy
+    build:
+      context: .
+      dockerfile: ./server/docker/nginx_proxy/Dockerfile
     ports:
       - "80:80"
 
   app-server:
-    image: app-server
+    build:
+      context: .
+      dockerfile: ./server/docker/app_server/Dockerfile
     ports:
       - "8000:8000"
     restart: always
 
   provision:
-    image: app-server
+    build:
+      context: .
+      dockerfile: ./server/docker/app_server/Dockerfile
     entrypoint: ./entrypoint.prov.sh

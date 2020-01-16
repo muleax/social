@@ -1,6 +1,5 @@
 ```
-./build.sh
-docker-compose up
+docker-compose up --build
 ...
 docker-compose stop
 ```

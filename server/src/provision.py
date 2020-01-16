@@ -9,10 +9,10 @@ from db_connection import open_connection
 
 async def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--db-host', type=str, default='localhost1')
-    parser.add_argument('--db-port', type=int, default=33061)
-    parser.add_argument('--db-user', type=str, default='user')
-    parser.add_argument('--db-password', type=str, default='password')
+    parser.add_argument('--db-host', type=str, default='localhost')
+    parser.add_argument('--db-port', type=int, default=3306)
+    parser.add_argument('--db-user', type=str, default='root')
+    parser.add_argument('--db-password', type=str, default='')
     args = parser.parse_args()
 
     print(args)
