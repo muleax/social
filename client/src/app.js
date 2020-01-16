@@ -62,7 +62,7 @@ class App extends React.Component {
     renderGetUserList() {
         const getUserList = this.state.getUserList;
         return (
-            <div>
+            <div class="border">
                 <input
                     placeholder = "Offset"
                     name = "offset"
@@ -97,7 +97,7 @@ class App extends React.Component {
     renderGetUser() {
         const getUser = this.state.getUser;
         return (
-            <div>
+            <div class="border">
                 <input
                     placeholder = "ID"
                     name = "user_id"
@@ -154,42 +154,44 @@ class App extends React.Component {
 
     renderUpdateUser() {
         const user = this.state.user;
+        const userConfirmed = this.state.userConfirmed;
         return (
-            <div>
-                <input
-                    id="newFirstName"
-                    placeholder="First name"
-                    name="first_name"
-                    value={user.first_name}
-                    onChange={this.onUserChange}
-                />
-                <input
-                    id="newLastName"
-                    placeholder="Last name"
-                    name="last_name"
-                    value={user.last_name}
-                    onChange={this.onUserChange}
-                />
-                <input
-                    id="newCity"
-                    placeholder="City"
-                    name="city"
-                    value={user.city}
-                    onChange={this.onUserChange}
-                />
-                <button onClick={this.updateUser} type='button'>Update User</button>
-                <pre>{this.state.updateUserResponse}</pre>
+            <div class="border">
+                <h3> {userConfirmed.first_name} {userConfirmed.last_name} </h3>
+                <pre>{userConfirmed.json}</pre>
+                <div>
+                    <input
+                        id="newFirstName"
+                        placeholder="First name"
+                        name="first_name"
+                        value={user.first_name}
+                        onChange={this.onUserChange}
+                    />
+                    <input
+                        id="newLastName"
+                        placeholder="Last name"
+                        name="last_name"
+                        value={user.last_name}
+                        onChange={this.onUserChange}
+                    />
+                    <input
+                        id="newCity"
+                        placeholder="City"
+                        name="city"
+                        value={user.city}
+                        onChange={this.onUserChange}
+                    />
+                    <button onClick={this.updateUser} type='button'>Update User</button>
+                    <pre>{this.state.updateUserResponse}</pre>
+                </div>
             </div>
         );
     }
 
     renderHomePage() {
-        let userConfirmed = this.state.userConfirmed;
         return (
             <div>
                 <button onClick = {this.logout} type = 'button'>Sign Out</button>
-                <h3> {userConfirmed.first_name} {userConfirmed.last_name} </h3>
-                <pre>{userConfirmed.json}</pre>
                 {this.renderUpdateUser()}
                 {this.renderGetUser()}
                 {this.renderGetUserList()}
@@ -245,7 +247,7 @@ class App extends React.Component {
     renderAuth() {
         const auth = this.state.auth;
         return (
-            <div>
+            <div class="border">
                 <h3> Auth </h3>
                 <input
                     placeholder = "Login"
