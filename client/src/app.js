@@ -35,7 +35,14 @@ class App extends React.Component {
             getUser : {
                 user_id: 0
             },
-            getUserResponse: null
+            getUserResponse: null,
+
+            findUsers : {
+                first_name: '',
+                last_name: '',
+                city: ''
+            },
+            findUsersResponse: null
         };
     }
 
@@ -187,8 +194,71 @@ class App extends React.Component {
                         value={user.birth_date}
                         onChange={this.onUserChange}
                     />
-        <button onClick={this.updateUser} type='button'>Update User</button>
+                    <button onClick={this.updateUser} type='button'>Update User</button>
                     <pre>{this.state.updateUserResponse}</pre>
+                </div>
+            </div>
+        );
+    }
+
+    findUsers = async () => {
+        try {
+            let constraints = {};
+            // filter out empty strings
+            for (const [key, value] of Object.entries(this.state.findUsers)) {
+                if (value) {
+                    constraints[key] = value;
+                }
+            }
+
+            let params = {
+                constraints,
+                user_id: this.state.user_id,
+                auth_token: this.state.auth_token,
+            };
+            let response = await axios.get('/find_users', { params });
+            console.log(response);
+            this.setState({ findUsersResponse: JSON.stringify(response.data, null, 2) });
+
+            this.setState({
+                updateUserResponse: `${response.status}`
+            });
+        } catch (e) {
+            this.setState({findUsersResponse: e.message})
+            throw e;
+        }
+    }
+
+    onFindUsersChange = e => this.setState({ findUsers: {...this.state.findUsers, [e.target.name]:  e.target.value} });
+
+    renderFindUsers() {
+        const findUsers = this.state.findUsers;
+        return (
+            <div className="border">
+                <div>
+                    <input
+                        id="targetFirstName"
+                        placeholder="First name"
+                        name="first_name"
+                        value={findUsers.first_name}
+                        onChange={this.onFindUsersChange}
+                    />
+                    <input
+                        id="targetLastName"
+                        placeholder="Last name"
+                        name="last_name"
+                        value={findUsers.last_name}
+                        onChange={this.onFindUsersChange}
+                    />
+                    <input
+                        id="targetCity"
+                        placeholder="City"
+                        name="city"
+                        value={findUsers.city}
+                        onChange={this.onFindUsersChange}
+                    />
+                    <button onClick={this.findUsers} type='button'>Find Users</button>
+                    <pre>{this.state.findUsersResponse}</pre>
                 </div>
             </div>
         );
@@ -199,6 +269,7 @@ class App extends React.Component {
             <div>
                 <button onClick = {this.logout} type = 'button'>Sign Out</button>
                 {this.renderUpdateUser()}
+                {this.renderFindUsers()}
                 {this.renderGetUser()}
                 {this.renderGetUserList()}
             </div>

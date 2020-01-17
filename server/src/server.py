@@ -67,7 +67,7 @@ async def update_user(request):
     if not check_auth_token(user_id, payload.get('auth_token')):
         return build_response(STATUS.BAD_REQUEST)
 
-    user_data = payload['data']
+    user_data = payload.get('data', {})
 
     params = ', '.join(f"{fn} = '{user_data[fn]}'" for fn in EDITABLE_USER_FIELDS if fn in user_data)
     if not params:
@@ -114,16 +114,39 @@ async def auth(request):
 
 
 async def find_users(request):
-    data = request.rel_url.query
-    logging.info(f'Find users {data}')
+    params = request.rel_url.query
+    logging.info(f'Find users {params}')
+
+    user_id = params.get('user_id')
+    if not check_auth_token(user_id, params.get('auth_token')):
+        return build_response(STATUS.BAD_REQUEST)
+
+    constraints = json.loads(params.get('constraints', '{}'))
+
+    search_order = ('first_name', 'last_name', 'city')
+    search_condition = ' AND '.join(f"{fn}='{constraints[fn]}'" for fn in search_order if fn in constraints)
+    if not search_condition:
+        return build_response(STATUS.BAD_REQUEST)
+
+    try:
+        cursor = request.app.db.cursor()
+        preview_fields = ', '.join(PREVIEW_USER_FIELDS)
+        cursor.execute(f"SELECT {preview_fields} FROM {USERS_TABLE} WHERE {search_condition}")
+
+        records = list(map(format_user_data, cursor.fetchall()))
+        return build_response(STATUS.SUCCESS, records)
+
+    except Exception as err:
+        logging.exception(err)
+        return build_response(STATUS.SERVER_ERROR)
 
 
 async def user_list(request):
-    data = request.rel_url.query
-    logging.info(f'Get user list {data}')
+    params = request.rel_url.query
+    logging.info(f'Get user list {params}')
 
-    offset = data.get('offset')
-    limit = data.get('limit')
+    offset = params.get('offset')
+    limit = params.get('limit')
     if offset is None or limit is None:
         return build_response(STATUS.BAD_REQUEST)
 
@@ -142,10 +165,10 @@ async def user_list(request):
 
 
 async def user(request):
-    data = request.rel_url.query
-    logging.info(f'Get user by Id {data}')
+    params = request.rel_url.query
+    logging.info(f'Get user by Id {params}')
 
-    user_id = data.get('user_id')
+    user_id = params.get('user_id')
     if user_id is None:
         return build_response(STATUS.BAD_REQUEST)
 

@@ -5,3 +5,8 @@ div.border {
     margin: 8px;
     width: 17cm;
 }
+
+p {
+    font-size: 0.4cm;
+    color: #323232;
+}
