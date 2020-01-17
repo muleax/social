@@ -16,6 +16,7 @@ class App extends React.Component {
                 first_name: '',
                 last_name: '',
                 city: '',
+                birth_date: '',
                 udata: {}
             },
             userConfirmed: {
@@ -62,7 +63,7 @@ class App extends React.Component {
     renderGetUserList() {
         const getUserList = this.state.getUserList;
         return (
-            <div class="border">
+            <div className="border">
                 <input
                     placeholder = "Offset"
                     name = "offset"
@@ -97,25 +98,23 @@ class App extends React.Component {
     renderGetUser() {
         const getUser = this.state.getUser;
         return (
-            <div class="border">
+            <div className="border">
                 <input
                     placeholder = "ID"
                     name = "user_id"
                     value = {getUser.user_id}
                     onChange = {this.onGetUserChange}
                 />
-                <button onClick = {this.getUser} type = 'button'>Get User</button>
+                <button onClick = {this.getUser} type = 'button'>Get User By ID</button>
                 <pre>{this.state.getUserResponse}</pre>
             </div>
         );
     }
 
-    updateUserView = async (data) => {
-        if (!data) {
-            let response = await axios.get('/user', { params: {user_id: this.state.user_id} });
-            console.log(response);
-            data = response.data;
-        }
+    updateUserView = async () => {
+        let response = await axios.get('/user', { params: {user_id: this.state.user_id} });
+        console.log(response);
+        let data = response.data;
 
         let userConfirmed = {
             json: JSON.stringify(data, null, 2),
@@ -143,7 +142,7 @@ class App extends React.Component {
                 updateUserResponse: `${response.status}`
             });
 
-            this.updateUserView(response.data);
+            await this.updateUserView();
         } catch (e) {
             this.setState({updateUserResponse: e.message})
             throw e;
@@ -156,7 +155,7 @@ class App extends React.Component {
         const user = this.state.user;
         const userConfirmed = this.state.userConfirmed;
         return (
-            <div class="border">
+            <div className="border">
                 <h3> {userConfirmed.first_name} {userConfirmed.last_name} </h3>
                 <pre>{userConfirmed.json}</pre>
                 <div>
@@ -181,7 +180,14 @@ class App extends React.Component {
                         value={user.city}
                         onChange={this.onUserChange}
                     />
-                    <button onClick={this.updateUser} type='button'>Update User</button>
+                    <input
+                        id="newBirthDate"
+                        placeholder="Birth Date"
+                        name="birth_date"
+                        value={user.birth_date}
+                        onChange={this.onUserChange}
+                    />
+        <button onClick={this.updateUser} type='button'>Update User</button>
                     <pre>{this.state.updateUserResponse}</pre>
                 </div>
             </div>
@@ -224,7 +230,7 @@ class App extends React.Component {
             localStorage.setItem('user_id', user_id);
             localStorage.setItem('auth_token', auth_token);
 
-            this.updateUserView();
+            await this.updateUserView();
         } catch (e) {
             this.setState({authResponse: e.message})
             throw e;
@@ -247,7 +253,7 @@ class App extends React.Component {
     renderAuth() {
         const auth = this.state.auth;
         return (
-            <div class="border">
+            <div className="border">
                 <h3> Auth </h3>
                 <input
                     placeholder = "Login"
