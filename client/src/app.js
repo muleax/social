@@ -7,8 +7,8 @@ class App extends React.Component {
             auth_token: localStorage.getItem('auth_token'),
 
             auth : {
-                login: 'kotik_kotik',
-                password: 'kotik'
+                login: 'login1',
+                password: 'password1'
             },
             authResponse: null,
 

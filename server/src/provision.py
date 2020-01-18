@@ -31,7 +31,7 @@ async def main():
         logging.info("Database initialized")
     else:
         # TODO: proper migration
-        logging.info("Database migrated to the latest version")
+        logging.info("Using existing database")
 
     connection.close()
 

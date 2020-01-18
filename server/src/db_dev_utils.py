@@ -1,36 +1,90 @@
 import logging
 import asyncio
 import db_connection
+import json
+import random
+import datetime
 from db_schema import *
+from russian_names import RussianNames
+from functools import reduce
+
+
+def get_city_sample_space(precision=5000):
+    sample_space = []
+    with open('data/russian_cities.json') as cities_file:
+        cities = json.load(cities_file)
+        for city in cities:
+            sample_space += [city['name_en'].replace("'", "''")] * (city['population'] // precision)
+
+    logging.info(f"Cities sampled")
+    return sample_space
+
+
+def get_names_sample_space(size=1000, batch_size=1000):
+    batch_count = max(1, size // batch_size)
+    generator = RussianNames(count=batch_size, patronymic=False, transliterate=True)
+    raw_samples = reduce(lambda a, b: a + b, (generator.get_batch() for _ in range(batch_count)), ())
+    sample_space = [raw.replace("'", "''").split() for raw in raw_samples]
+
+    logging.info(f"Names sampled")
+    return sample_space
+
+
+def get_age_sample_space():
+    lo = 14
+    distribution = [(17, 15), (24, 50), (34, 39), (44, 18), (54, 8), (64, 3), (79, 1)]
+
+    sample_space = []
+    for hi, p in distribution:
+        for age in range(lo, hi + 1):
+            sample_space += [age] * p
+        lo = hi + 1
+
+    return sample_space
+
+
+def sample_birth_date(age_sample_space, today_date):
+    age = random.choice(age_sample_space)
+    days = int(365.25 * (age + random.random()))
+    return today_date - datetime.timedelta(days=days)
 
 
 # noinspection SqlNoDataSourceInspection
 def create_test_users(connection, count):
     logging.info("Creating test users...")
 
+    city_sample_space = get_city_sample_space()
+    names_sample_space = get_names_sample_space(size=min(100000, count * 2))
+    age_sample_space = get_age_sample_space()
+    today_date = datetime.date.today()
+
     connection.select_db(DATABASE)
     cursor = connection.cursor()
 
-    test_users = (('Sanya', 'Ivanov', 'Minsk', '1998-01-01', {}, 'sanya1998', 'pass'),
-                  ('Kolya', 'Dvoechka', 'Moscow', '2005-04-27',  {}, 'nagibator2005', 'qwerty'),
-                  ('Nastik', 'Kotik', 'Moscow', '1997-10-10', {}, 'kotik_kotik', 'kotik'))
-
-    BATCH_SIZE = 20000
-    for i in range(0, max(1, count // BATCH_SIZE)):
+    sql_batch_size = 20000
+    for i in range(0, max(1, count // sql_batch_size)):
         values_auth = []
         values_users = []
-        for j in range(1, BATCH_SIZE + 1):
-            user_id = i * BATCH_SIZE + j
-            first_name, last_name, city, birth_date, udata, login, password = test_users[0]
-            values_auth.append(f"('{login}-{user_id}', '{password}', {user_id})")
-            values_users.append(f"({user_id}, '{first_name}-{user_id}', '{last_name}-{user_id}', '{city}', '{birth_date}', '{udata}')")
+        for j in range(1, sql_batch_size + 1):
+            user_id = i * sql_batch_size + j
+            login = f"login{user_id}"
+            password = f"password{user_id}"
+            city = random.choice(city_sample_space)
+            first_name, last_name = random.choice(names_sample_space)
+            birth_date = sample_birth_date(age_sample_space, today_date=today_date).isoformat()
+            udata = '{}'
 
-        cursor.execute(f"INSERT INTO {AUTH_TABLE} (login, password, user_id) VALUES {', '.join(values_auth)}")
+            values_auth.append(f"('{login}', '{password}', {user_id})")
+            values_users.append(f"({user_id}, '{first_name}', '{last_name}', '{city}', '{birth_date}', '{udata}')")
 
-        cursor.execute(f"INSERT INTO {USERS_TABLE} (user_id, first_name, last_name, city, birth_date, udata)\
-                         VALUES {', '.join(values_users)}")
+        auth_sql = f"INSERT INTO {AUTH_TABLE} (login, password, user_id) VALUES {', '.join(values_auth)}"
+        cursor.execute(auth_sql)
 
-        logging.info(f"Created {BATCH_SIZE * (i + 1)}")
+        users_sql = f"INSERT INTO {USERS_TABLE} (user_id, first_name, last_name, city, birth_date, udata)\
+                      VALUES {', '.join(values_users)}"
+        cursor.execute(users_sql)
+
+        logging.info(f"Inserted {sql_batch_size * (i + 1)}")
 
     logging.info("Creation finished")
 
