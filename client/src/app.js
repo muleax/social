@@ -7,10 +7,16 @@ class App extends React.Component {
             auth_token: localStorage.getItem('auth_token'),
 
             auth : {
-                login: 'nagibator2005',
-                password: 'qwerty'
+                login: 'kotik_kotik',
+                password: 'kotik'
             },
             authResponse: null,
+
+            createAccount : {
+                login: '',
+                password: ''
+            },
+            createAccountResponse: null,
 
             user : {
                 first_name: '',
@@ -27,8 +33,8 @@ class App extends React.Component {
             updateUserResponse: null,
 
             getUserList : {
-                offset: 0,
-                limit: 5
+                limit: 20,
+                offset: 0
             },
             getUserListResponse: null,
 
@@ -40,7 +46,11 @@ class App extends React.Component {
             findUsers : {
                 first_name: '',
                 last_name: '',
-                city: ''
+                city: '',
+                age_from: 14,
+                age_to: 35,
+                limit: 10,
+                offset: 0
             },
             findUsersResponse: null
         };
@@ -72,15 +82,15 @@ class App extends React.Component {
         return (
             <div className="border">
                 <input
-                    placeholder = "Offset"
-                    name = "offset"
-                    value = {getUserList.offset}
-                    onChange = {this.onGetUserListChange}
-                />
-                <input
                     placeholder = "Limit"
                     name = "limit"
                     value = {getUserList.limit}
+                    onChange = {this.onGetUserListChange}
+                />
+                <input
+                    placeholder = "Offset"
+                    name = "offset"
+                    value = {getUserList.offset}
                     onChange = {this.onGetUserListChange}
                 />
                 <button onClick={this.getUserList} type='button'>Get User List</button>
@@ -138,9 +148,9 @@ class App extends React.Component {
     updateUser = async () => {
         try {
             let payload = {
+                ...this.state.user,
                 user_id: this.state.user_id,
                 auth_token: this.state.auth_token,
-                data: this.state.user
             }
             let response = await axios.post('/update_user', payload);
             console.log(response);
@@ -167,28 +177,24 @@ class App extends React.Component {
                 <pre>{userConfirmed.json}</pre>
                 <div>
                     <input
-                        id="newFirstName"
-                        placeholder="First name"
+                        placeholder="First Name"
                         name="first_name"
                         value={user.first_name}
                         onChange={this.onUserChange}
                     />
                     <input
-                        id="newLastName"
-                        placeholder="Last name"
+                        placeholder="Last Name"
                         name="last_name"
                         value={user.last_name}
                         onChange={this.onUserChange}
                     />
                     <input
-                        id="newCity"
                         placeholder="City"
                         name="city"
                         value={user.city}
                         onChange={this.onUserChange}
                     />
                     <input
-                        id="newBirthDate"
                         placeholder="Birth Date"
                         name="birth_date"
                         value={user.birth_date}
@@ -203,19 +209,18 @@ class App extends React.Component {
 
     findUsers = async () => {
         try {
-            let constraints = {};
-            // filter out empty strings
-            for (const [key, value] of Object.entries(this.state.findUsers)) {
-                if (value) {
-                    constraints[key] = value;
-                }
-            }
-
             let params = {
-                constraints,
                 user_id: this.state.user_id,
                 auth_token: this.state.auth_token,
             };
+
+            // filter out empty strings
+            for (const [key, value] of Object.entries(this.state.findUsers)) {
+                if (value !== "") {
+                    params[key] = value;
+                }
+            }
+
             let response = await axios.get('/find_users', { params });
             console.log(response);
             this.setState({ findUsersResponse: JSON.stringify(response.data, null, 2) });
@@ -237,25 +242,46 @@ class App extends React.Component {
             <div className="border">
                 <div>
                     <input
-                        id="targetFirstName"
                         placeholder="First name"
                         name="first_name"
                         value={findUsers.first_name}
                         onChange={this.onFindUsersChange}
                     />
                     <input
-                        id="targetLastName"
                         placeholder="Last name"
                         name="last_name"
                         value={findUsers.last_name}
                         onChange={this.onFindUsersChange}
                     />
                     <input
-                        id="targetCity"
                         placeholder="City"
                         name="city"
                         value={findUsers.city}
                         onChange={this.onFindUsersChange}
+                    />
+                    <input
+                        placeholder="Age From"
+                        name="age_from"
+                        value={findUsers.age_from}
+                        onChange={this.onFindUsersChange}
+                    />
+                    <input
+                        placeholder="Age To"
+                        name="age_to"
+                        value={findUsers.age_to}
+                        onChange={this.onFindUsersChange}
+                    />
+                    <input
+                        placeholder = "Limit"
+                        name = "limit"
+                        value = {findUsers.limit}
+                        onChange = {this.onFindUsersChange}
+                    />
+                    <input
+                        placeholder = "Offset"
+                        name = "offset"
+                        value = {findUsers.offset}
+                        onChange = {this.onFindUsersChange}
                     />
                     <button onClick={this.findUsers} type='button'>Find Users</button>
                     <pre>{this.state.findUsersResponse}</pre>
@@ -276,6 +302,44 @@ class App extends React.Component {
         );
     }
 
+    createAccount = async () => {
+        try{
+            let response = await axios.post('/create_account', this.state.createAccount);
+            console.log(response);
+            this.setState({
+                createAccountResponse: `${response.status}`,
+                auth: Object.assign({}, this.state.createAccount)
+            });
+        } catch (e) {
+            this.setState({createAccountResponse: e.message})
+            throw e;
+        }
+    }
+
+    onCreateAccountChange = e => this.setState({ createAccount: {...this.state.createAccount, [e.target.name]:  e.target.value} });
+
+    renderCreateAccount() {
+        return (
+            <div className="border">
+                <h3> Create Account </h3>
+                <input
+                    placeholder = "Login"
+                    name = "login"
+                    value = {this.state.createAccount.login}
+                    onChange = {this.onCreateAccountChange}
+                />
+                <input
+                    placeholder = "Password"
+                    name = "password"
+                    value = {this.state.createAccount.password}
+                    onChange = {this.onCreateAccountChange}
+                />
+                <button onClick = {this.createAccount} type = 'button'>Create Account</button>
+                <pre>{this.state.createAccountResponse}</pre>
+            </div>
+        );
+    }
+
     logout = async () => {
         this.setState({
             user_id: null,
@@ -286,7 +350,7 @@ class App extends React.Component {
         localStorage.removeItem('auth_token');
     }
 
-    login = async () => {
+    auth = async () => {
         try {
             let authResponse = await axios.get('/auth', { params: this.state.auth });
             console.log(authResponse);
@@ -302,17 +366,6 @@ class App extends React.Component {
             localStorage.setItem('auth_token', auth_token);
 
             await this.updateUserView();
-        } catch (e) {
-            this.setState({authResponse: e.message})
-            throw e;
-        }
-    }
-
-    createAccount = async () => {
-        try{
-            let response = await axios.post('/create_account', this.state.auth);
-            console.log(response);
-            this.setState({authResponse: `${response.status}`});
         } catch (e) {
             this.setState({authResponse: e.message})
             throw e;
@@ -338,9 +391,17 @@ class App extends React.Component {
                     value = {auth.password}
                     onChange = {this.onAuthChange}
                 />
-                <button onClick = {this.login} type = 'button'>Sign In</button>
-                <button onClick = {this.createAccount} type = 'button'>Create Account</button>
+                <button onClick = {this.auth} type = 'button'>Sign In</button>
                 <pre>{this.state.authResponse}</pre>
+            </div>
+        );
+    }
+
+    renderAuthPage() {
+        return (
+            <div>
+                {this.renderAuth()}
+                {this.renderCreateAccount()}
             </div>
         );
     }
@@ -349,7 +410,7 @@ class App extends React.Component {
         if (this.state.auth_token && this.state.user_id) {
             return this.renderHomePage();
         } else {
-            return this.renderAuth();
+            return this.renderAuthPage();
         }
     }
 }

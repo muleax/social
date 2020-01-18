@@ -1,10 +1,12 @@
 import logging
 import db_connection
-from db_schema import *
-from aiohttp import web
-from constants import *
 import json
 import jwt
+import datetime
+from aiohttp import web
+from db_schema import *
+from constants import *
+from itertools import *
 
 
 def get_auth_token(user_id):
@@ -12,7 +14,7 @@ def get_auth_token(user_id):
 
 
 def check_auth_token(user_id, token):
-    return user_id and token and (token == get_auth_token(user_id))
+    return token == get_auth_token(user_id)
 
 
 def format_user_data(user_data):
@@ -26,13 +28,21 @@ def build_response(status, data=None):
     return web.Response(text=f"{json.dumps(data)}\n", status=status)
 
 
-async def create_account(request):
-    credentials = await request.json()
-    logging.info(f'Create account {credentials}')
+def calculate_birth_date(age, today_date):
+    try:
+        return today_date.replace(year=(today_date.year - age))
+    except ValueError:
+        return today_date.replace(year=(today_date.year - age), month=3, day=1)
 
-    login = credentials.get('login')
-    password = credentials.get('password')
-    if not login or not password:
+
+async def create_account(request):
+    payload = await request.json()
+    logging.info(f'Create account {payload}')
+
+    try:
+        login = payload['login']
+        password = payload['password']
+    except KeyError:
         return build_response(STATUS.BAD_REQUEST)
 
     # TODO: async db abstraction model
@@ -63,20 +73,22 @@ async def update_user(request):
     payload = await request.json()
     logging.info(f'Update user {payload}')
 
-    user_id = payload.get('user_id')
-    if not check_auth_token(user_id, payload.get('auth_token')):
+    try:
+        user_id = payload['user_id']
+        if not check_auth_token(user_id, payload['auth_token']):
+            return build_response(STATUS.BAD_REQUEST)
+    except KeyError:
         return build_response(STATUS.BAD_REQUEST)
 
-    user_data = payload.get('data', {})
-
-    params = ', '.join(f"{fn} = '{user_data[fn]}'" for fn in EDITABLE_USER_FIELDS if fn in user_data)
-    if not params:
+    assignments = (f"{fn} = '{payload[fn]}'" for fn in EDITABLE_USER_FIELDS if fn in payload)
+    set_statement = ', '.join(assignments)
+    if not set_statement:
         return build_response(STATUS.BAD_REQUEST)
 
     try:
         cursor = request.app.db.cursor()
-        q = f"UPDATE {USERS_TABLE} SET {params} WHERE user_id = {user_id}"
-        cursor.execute(q)
+        sql = f"UPDATE {USERS_TABLE} SET {set_statement} WHERE user_id = {user_id}"
+        cursor.execute(sql)
         # enrich updated data with return updated data
         return build_response(STATUS.SUCCESS)
 
@@ -86,12 +98,13 @@ async def update_user(request):
 
 
 async def auth(request):
-    credentials = request.rel_url.query
-    logging.info(f'Auth {credentials}')
+    params = request.rel_url.query
+    logging.info(f'Auth {params}')
 
-    login = credentials.get('login')
-    password = credentials.get('password')
-    if not login or not password:
+    try:
+        login = params['login']
+        password = params['password']
+    except KeyError:
         return build_response(STATUS.BAD_REQUEST)
 
     try:
@@ -117,21 +130,43 @@ async def find_users(request):
     params = request.rel_url.query
     logging.info(f'Find users {params}')
 
-    user_id = params.get('user_id')
-    if not check_auth_token(user_id, params.get('auth_token')):
+    try:
+        user_id = params['user_id']
+        if not check_auth_token(user_id, params['auth_token']):
+            return build_response(STATUS.BAD_REQUEST)
+
+        limit = min(FIND_USERS_LIMIT, int(params['limit']))
+        offset = int(params['offset'])
+
+        eq_search_order = ('first_name', 'last_name', 'city')
+        constraints_sql = [f"{fn}='{params[fn]}'" for fn in eq_search_order if fn in params]
+
+        today_date = datetime.date.today()
+        age_from = params.get('age_from')
+        if age_from:
+            upper_bound = calculate_birth_date(int(age_from), today_date).isoformat()
+            constraints_sql.append(f"birth_date <= '{upper_bound}'")
+        age_to = params.get('age_to')
+        if age_to:
+            lower_bound = calculate_birth_date(int(age_to) + 1, today_date).isoformat()
+            constraints_sql.append(f"birth_date > '{lower_bound}'")
+
+    except (ValueError, KeyError) as err:
+        logging.debug(f"Find users bad request: {err}")
         return build_response(STATUS.BAD_REQUEST)
 
-    constraints = json.loads(params.get('constraints', '{}'))
-
-    search_order = ('first_name', 'last_name', 'city')
-    search_condition = ' AND '.join(f"{fn}='{constraints[fn]}'" for fn in search_order if fn in constraints)
-    if not search_condition:
+    if not constraints_sql:
         return build_response(STATUS.BAD_REQUEST)
+
+    constraints_sql.append(f"user_id != {user_id}")
+    search_condition = ' AND '.join(constraints_sql)
 
     try:
         cursor = request.app.db.cursor()
         preview_fields = ', '.join(PREVIEW_USER_FIELDS)
-        cursor.execute(f"SELECT {preview_fields} FROM {USERS_TABLE} WHERE {search_condition}")
+        sql = f"SELECT {preview_fields} FROM {USERS_TABLE} WHERE {search_condition} LIMIT {limit} OFFSET {offset}"
+        logging.debug(f"Find users sql: {sql}")
+        cursor.execute(sql)
 
         records = list(map(format_user_data, cursor.fetchall()))
         return build_response(STATUS.SUCCESS, records)
@@ -145,9 +180,10 @@ async def user_list(request):
     params = request.rel_url.query
     logging.info(f'Get user list {params}')
 
-    offset = params.get('offset')
-    limit = params.get('limit')
-    if offset is None or limit is None:
+    try:
+        offset = min(GET_USER_LIST_LIMIT, int(params['offset']))
+        limit = int(params['limit'])
+    except (ValueError, KeyError):
         return build_response(STATUS.BAD_REQUEST)
 
     public_fields = ', '.join(PUBLIC_USER_FIELDS)
@@ -168,8 +204,9 @@ async def user(request):
     params = request.rel_url.query
     logging.info(f'Get user by Id {params}')
 
-    user_id = params.get('user_id')
-    if user_id is None:
+    try:
+        user_id = params['user_id']
+    except KeyError:
         return build_response(STATUS.BAD_REQUEST)
 
     public_fields = ', '.join(PUBLIC_USER_FIELDS)
