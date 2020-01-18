@@ -181,8 +181,8 @@ async def user_list(request):
     logging.info(f'Get user list {params}')
 
     try:
-        offset = min(GET_USER_LIST_LIMIT, int(params['offset']))
-        limit = int(params['limit'])
+        limit = min(GET_USER_LIST_LIMIT, int(params['limit']))
+        offset = int(params['offset'])
     except (ValueError, KeyError):
         return build_response(STATUS.BAD_REQUEST)
 
@@ -248,4 +248,4 @@ def app_factory(db_host, db_port, db_user, db_password):
     return app
 
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=LOG_LEVEL)

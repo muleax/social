@@ -1,5 +1,10 @@
+import logging
+
 
 IS_DEVELOPMENT = True
+LOG_LEVEL = logging.DEBUG if IS_DEVELOPMENT else logging.INFO
+
+INITIAL_TEST_USERS_COUNT = 1000000
 
 class STATUS:
     SUCCESS = 200

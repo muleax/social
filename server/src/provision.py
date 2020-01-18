@@ -26,7 +26,7 @@ async def main():
     if is_fresh_db(connection):
         create_tables(connection)
         if IS_DEVELOPMENT:
-            create_test_users(connection)
+            create_test_users(connection, INITIAL_TEST_USERS_COUNT)
 
         logging.info("Database initialized")
     else:
@@ -38,5 +38,5 @@ async def main():
     sys.exit(0)
 
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.DEBUG)
+    logging.basicConfig(level=LOG_LEVEL)
     asyncio.get_event_loop().run_until_complete(main())
