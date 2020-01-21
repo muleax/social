@@ -1,52 +1,10 @@
 import logging
 import asyncio
 import db_connection
-import json
 import random
 import datetime
 from db_schema import *
-from russian_names import RussianNames
-from functools import reduce
-
-
-def get_city_sample_space(precision=5000):
-    sample_space = []
-    with open('data/russian_cities.json') as cities_file:
-        cities = json.load(cities_file)
-        for city in cities:
-            sample_space += [city['name_en'].replace("'", "''")] * (city['population'] // precision)
-
-    logging.info(f"Cities sampled")
-    return sample_space
-
-
-def get_names_sample_space(size=1000, batch_size=1000):
-    batch_count = max(1, size // batch_size)
-    generator = RussianNames(count=batch_size, patronymic=False, transliterate=True)
-    raw_samples = reduce(lambda a, b: a + b, (generator.get_batch() for _ in range(batch_count)), ())
-    sample_space = [raw.replace("'", "''").split() for raw in raw_samples]
-
-    logging.info(f"Names sampled")
-    return sample_space
-
-
-def get_age_sample_space():
-    lo = 14
-    distribution = [(17, 15), (24, 50), (34, 39), (44, 18), (54, 8), (64, 3), (79, 1)]
-
-    sample_space = []
-    for hi, p in distribution:
-        for age in range(lo, hi + 1):
-            sample_space += [age] * p
-        lo = hi + 1
-
-    return sample_space
-
-
-def sample_birth_date(age_sample_space, today_date):
-    age = random.choice(age_sample_space)
-    days = int(365.25 * (age + random.random()))
-    return today_date - datetime.timedelta(days=days)
+from dev_utils import *
 
 
 # noinspection SqlNoDataSourceInspection
@@ -54,7 +12,9 @@ def create_test_users(connection, count):
     logging.info("Creating test users...")
 
     city_sample_space = get_city_sample_space()
+    logging.info(f"Cities sampled")
     names_sample_space = get_names_sample_space(size=min(100000, count * 2))
+    logging.info(f"Names sampled")
     age_sample_space = get_age_sample_space()
     today_date = datetime.date.today()
 
@@ -92,4 +52,3 @@ def create_test_users(connection, count):
 def open_connection_sync(host='localhost', port=3307, user='root', password=''):
     loop = asyncio.new_event_loop()
     return loop.run_until_complete(db_connection.open_connection(host, port, user, password))
-

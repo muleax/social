@@ -4,7 +4,7 @@ import logging
 IS_DEVELOPMENT = True
 LOG_LEVEL = logging.DEBUG if IS_DEVELOPMENT else logging.INFO
 
-INITIAL_TEST_USERS_COUNT = 3  # int(8e6)
+INITIAL_TEST_USERS_COUNT = int(8e6)
 
 class STATUS:
     SUCCESS = 200

@@ -133,12 +133,13 @@ async def find_users(request):
     try:
         user_id = params['user_id']
         if not check_auth_token(user_id, params['auth_token']):
+            logging.info('Token mismatch')
             return build_response(STATUS.BAD_REQUEST)
 
         limit = min(FIND_USERS_LIMIT, int(params['limit']))
         offset = int(params['offset'])
 
-        eq_search_order = ('first_name', 'last_name', 'city')
+        eq_search_order = ('city', 'first_name', 'last_name')
         constraints_sql = [f"{fn}='{params[fn]}'" for fn in eq_search_order if fn in params]
 
         today_date = datetime.date.today()
@@ -156,6 +157,7 @@ async def find_users(request):
         return build_response(STATUS.BAD_REQUEST)
 
     if not constraints_sql:
+        logging.info('not_constraints_sql')
         return build_response(STATUS.BAD_REQUEST)
 
     constraints_sql.append(f"user_id != {user_id}")
@@ -165,7 +167,7 @@ async def find_users(request):
         cursor = request.app.db.cursor()
         preview_fields = ', '.join(PREVIEW_USER_FIELDS)
         sql = f"SELECT {preview_fields} FROM {USERS_TABLE} WHERE {search_condition} LIMIT {limit} OFFSET {offset}"
-        logging.debug(f"Find users sql: {sql}")
+        # logging.debug(f"Find users sql: {sql}")
         cursor.execute(sql)
 
         records = list(map(format_user_data, cursor.fetchall()))
@@ -220,6 +222,56 @@ async def user(request):
     return build_response(STATUS.SUCCESS, record)
 
 
+async def user_list_full(request):
+    if not IS_DEVELOPMENT:
+        build_response(STATUS.BAD_REQUEST)
+
+    payload = await request.json()
+    logging.info(f'[DEV] User list full {payload}')
+
+    requested_ids = payload['user_ids']
+
+    requested_ids_sql = ', '.join(map(str, requested_ids))
+
+    cursor = request.app.db.cursor()
+    cursor.execute(f"SELECT * FROM {USERS_TABLE} WHERE user_id IN ({requested_ids_sql})")
+    user_records = cursor.fetchall()
+
+    cursor.execute(f"SELECT * FROM {AUTH_TABLE} WHERE user_id IN ({requested_ids_sql})")
+    auth_records = cursor.fetchall()
+
+    d = dict((e['user_id'], format_user_data(e)) for e in user_records)
+    for e in auth_records:
+        record = d[e['user_id']]
+        record.update(e)
+        record['auth_token'] = get_auth_token(e['user_id'])
+
+    return build_response(STATUS.SUCCESS, list(d.values()))
+
+
+async def max_user_id(request):
+    if not IS_DEVELOPMENT:
+        build_response(STATUS.BAD_REQUEST)
+
+    logging.info(f'[DEV] Get max user_id')
+
+    cursor = request.app.db.cursor()
+    cursor.execute(f"SELECT max(user_id) FROM {AUTH_TABLE}")
+    record = cursor.fetchone()
+
+    return build_response(STATUS.SUCCESS, {'user_id': next(iter(record.values()))})
+
+
+async def test_no_db(request):
+    if not IS_DEVELOPMENT:
+        build_response(STATUS.BAD_REQUEST)
+
+    logging.info(f'[DEV] Test no db')
+
+    value = max(range(100))
+    return build_response(STATUS.SUCCESS)
+
+
 def create_routes(app):
     app.router.add_post('/create_account', create_account)
     app.router.add_post('/update_user', update_user)
@@ -227,6 +279,10 @@ def create_routes(app):
     app.router.add_get('/find_users', find_users)
     app.router.add_get('/user', user)
     app.router.add_get('/user_list', user_list)
+
+    app.router.add_get('/test_no_db', test_no_db)
+    app.router.add_get('/user_list_full', user_list_full)
+    app.router.add_get('/max_user_id', max_user_id)
 
 
 def app_factory(db_host, db_port, db_user, db_password):
