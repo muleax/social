@@ -22,6 +22,15 @@ TABLES = {
     }
 }
 
+INDEXES = {
+    USERS_TABLE: {
+        'lfcb_idx': ('last_name', 'first_name', 'city', 'birth_date'),
+        'fcb_idx': ('first_name', 'city', 'birth_date'),
+        'cb_idx': ('city', 'birth_date'),
+        'b_idx': ('birth_date',)
+    }
+}
+
 ALL_USER_FIELDS = TABLES[USERS_TABLE].keys()
 PUBLIC_USER_FIELDS = ('user_id', 'first_name', 'last_name', 'city', 'birth_date', 'udata')
 PREVIEW_USER_FIELDS = ('user_id', 'first_name', 'last_name', 'city', 'birth_date')

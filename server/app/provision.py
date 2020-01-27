@@ -2,7 +2,7 @@ import sys
 import logging
 import argparse
 import asyncio
-from db_create_tables import *
+from db_init import *
 from db_dev_utils import *
 from db_replication import *
 from db_connection import open_connection
@@ -31,6 +31,7 @@ async def main():
 
     if is_fresh_db(connection):
         create_tables(connection)
+        create_indexes(connection)
         if IS_DEVELOPMENT:
             create_test_users(connection, INITIAL_TEST_USERS_COUNT)
 
