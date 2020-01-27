@@ -1,0 +1,19 @@
+db:
+  master:
+    host: 'social-mysql-1'
+    port: 3306
+    user: 'root'
+    password: ''
+  slaves:
+    - host: 'social-mysql-2'
+      port: 3306
+      user: 'root'
+      password: ''
+      slave_user: 'slave_user-1'
+      slave_password: 'pwd'
+    - host: 'social-mysql-3'
+      port: 3306
+      user: 'root'
+      password: ''
+      slave_user: 'slave_user-2'
+      slave_password: 'pwd'

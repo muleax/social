@@ -3,7 +3,7 @@ import sys
 import base64
 import json
 import datetime
-sys.path.append("../src")
+sys.path.append("../app")
 from dev_utils import *
 
 
@@ -22,7 +22,7 @@ class READ_PROBABILITY:
     MISS = 0.3
 
 
-cities = get_city_sample_space(src_path='../src/data/russian_cities.json')
+cities = get_city_sample_space(src_path='../app/data/russian_cities.json')
 names = get_names_sample_space(size=100000)
 ages = get_age_sample_space()
 

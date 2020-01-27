@@ -7,6 +7,7 @@ from aiohttp import web
 from db_schema import *
 from constants import *
 from itertools import *
+import yaml
 
 
 def get_auth_token(user_id):
@@ -46,7 +47,7 @@ async def create_account(request):
         return build_response(STATUS.BAD_REQUEST)
 
     # TODO: async db abstraction model
-    conn = request.app.db
+    conn = request.app.master_db_connection
     try:
         conn.begin()
         cursor = conn.cursor()
@@ -86,7 +87,7 @@ async def update_user(request):
         return build_response(STATUS.BAD_REQUEST)
 
     try:
-        cursor = request.app.db.cursor()
+        cursor = request.app.master_db_connection.cursor()
         sql = f"UPDATE {USERS_TABLE} SET {set_statement} WHERE user_id = {user_id}"
         cursor.execute(sql)
         # enrich updated data with return updated data
@@ -108,7 +109,7 @@ async def auth(request):
         return build_response(STATUS.BAD_REQUEST)
 
     try:
-        cursor = request.app.db.cursor()
+        cursor = request.app.master_db_connection.cursor()
         cursor.execute(f"SELECT user_id, password FROM {AUTH_TABLE} WHERE login='{login}'")
 
         fetched = cursor.fetchone()
@@ -164,7 +165,18 @@ async def find_users(request):
     search_condition = ' AND '.join(constraints_sql)
 
     try:
-        cursor = request.app.db.cursor()
+        slave_conns = request.app.slave_db_connections
+        if slave_conns:
+            # This is probably not the most efficient way to balance requests,
+            # as each worker need to keep connection to each slave.
+            # Instead we can dedicate each worker to single slave,
+            # but this is requires a bit more of managing logic.
+            slave_id = int(user_id) % len(slave_conns)
+            connection = slave_conns[slave_id]
+        else:
+            connection = request.app.master_db_connection
+
+        cursor = connection.cursor()
         preview_fields = ', '.join(PREVIEW_USER_FIELDS)
         sql = f"SELECT {preview_fields} FROM {USERS_TABLE} WHERE {search_condition} LIMIT {limit} OFFSET {offset}"
         # logging.debug(f"Find users sql: {sql}")
@@ -191,7 +203,7 @@ async def user_list(request):
     public_fields = ', '.join(PUBLIC_USER_FIELDS)
 
     try:
-        cursor = request.app.db.cursor()
+        cursor = request.app.master_db_connection.cursor()
         cursor.execute(f"SELECT {public_fields} FROM {USERS_TABLE} LIMIT {limit} OFFSET {offset}")
 
         records = list(map(format_user_data, cursor.fetchall()))
@@ -213,7 +225,7 @@ async def user(request):
 
     public_fields = ', '.join(PUBLIC_USER_FIELDS)
 
-    cursor = request.app.db.cursor()
+    cursor = request.app.master_db_connection.cursor()
     cursor.execute(f"SELECT {public_fields} FROM {USERS_TABLE} WHERE user_id={user_id}")
     record = cursor.fetchone()
     if record:
@@ -233,7 +245,7 @@ async def user_list_full(request):
 
     requested_ids_sql = ', '.join(map(str, requested_ids))
 
-    cursor = request.app.db.cursor()
+    cursor = request.app.master_db_connection.cursor()
     cursor.execute(f"SELECT * FROM {USERS_TABLE} WHERE user_id IN ({requested_ids_sql})")
     user_records = cursor.fetchall()
 
@@ -255,7 +267,7 @@ async def max_user_id(request):
 
     logging.info(f'[DEV] Get max user_id')
 
-    cursor = request.app.db.cursor()
+    cursor = request.app.master_db_connection.cursor()
     cursor.execute(f"SELECT max(user_id) FROM {AUTH_TABLE}")
     record = cursor.fetchone()
 
@@ -285,20 +297,35 @@ def create_routes(app):
     app.router.add_get('/max_user_id', max_user_id)
 
 
-def app_factory(db_host, db_port, db_user, db_password):
+def app_factory(cfg_file):
     app = web.Application()
 
-    async def on_startup(app):
-        app.db = await db_connection.open_connection(db_host, db_port, db_user, db_password)
+    cfg = yaml.full_load(open(cfg_file).read())
+    master_cfg = cfg['db']['master']
+    slave_cfgs = cfg['db']['slaves']
 
-        if app.db:
-            app.db.autocommit(True)
-            app.db.cursor().execute(f'USE {DATABASE}')
+    async def on_startup(app):
+        master_connection = await db_connection.open_connection(
+            master_cfg['host'], master_cfg['port'], master_cfg['user'], master_cfg['password'])
+
+        if master_connection:
+            master_connection.autocommit(True)
+            master_connection.cursor().execute(f'USE {DATABASE}')
             logging.info('Worker connected to db')
             create_routes(app)
         else:
             logging.info('Worker failed to connect to db!')
             # TODO
+
+        app.master_db_connection = master_connection
+
+        app.slave_db_connections = []
+        for slave_cfg in slave_cfgs:
+            connection = await db_connection.open_connection(
+                slave_cfg['host'], slave_cfg['port'], slave_cfg['user'], slave_cfg['password'])
+            connection.cursor().execute(f'USE {DATABASE}')
+
+            app.slave_db_connections.append(connection)
 
     app.on_startup.append(on_startup)
     return app

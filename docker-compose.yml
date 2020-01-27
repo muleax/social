@@ -1,20 +1,41 @@
 version: '3.7'
 
 services:
-  social-mysql:
-    image: mysql:8.0.18
+  social-mysql-1:
+    build:
+      context: .
+      dockerfile: ./server/docker/mysql/Dockerfile
+      args:
+        mysql_server_id: 1
     ports:
       - "3307:3306"
     restart: always
     environment:
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
-      #- MYSQL_ROOT_PASSWORD=pwd
-      #- MYSQL_USER=user
-      #- MYSQL_PASSWORD=password
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.05'
+
+  social-mysql-2:
+    build:
+      context: .
+      dockerfile: ./server/docker/mysql/Dockerfile
+      args:
+        mysql_server_id: 2
+    ports:
+      - "3308:3306"
+    restart: always
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+
+  social-mysql-3:
+    build:
+      context: .
+      dockerfile: ./server/docker/mysql/Dockerfile
+      args:
+        mysql_server_id: 3
+    ports:
+      - "3309:3306"
+    restart: always
+    environment:
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
 
   nginx-proxy:
     build:
@@ -22,10 +43,6 @@ services:
       dockerfile: ./server/docker/nginx_proxy/Dockerfile
     ports:
       - "80:80"
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.05'
 
   app-server:
     build:
@@ -34,10 +51,6 @@ services:
     ports:
       - "8000:8000"
     restart: always
-#    deploy:
-#      resources:
-#        limits:
-#          cpus: '0.05'
 
   provision:
     build:
