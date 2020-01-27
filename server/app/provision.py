@@ -19,10 +19,6 @@ async def main():
     master_cfg = cfg['db']['master']
     slave_cfgs = cfg['db']['slaves']
 
-    await make_master(master_cfg, slave_cfgs)
-    for slave_cfg in slave_cfgs:
-        await make_slave(master_cfg, slave_cfg)
-
     connection = await open_connection(master_cfg['host'], master_cfg['port'], master_cfg['user'], master_cfg['password'])
     connection.autocommit(True)
 
@@ -30,6 +26,10 @@ async def main():
         sys.exit(1)
 
     if is_fresh_db(connection):
+        await make_master(master_cfg, slave_cfgs)
+        for slave_cfg in slave_cfgs:
+            await make_slave(master_cfg, slave_cfg)
+
         create_tables(connection)
         create_indexes(connection)
         if IS_DEVELOPMENT:
