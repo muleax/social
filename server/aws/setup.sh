@@ -1,5 +1,12 @@
 #!/usr/bin/env bash
 
+mkfs.ext4 /dev/nvme1n1
+mount -t ext4 /dev/nvme1n1 /mnt/
+echo "{ \"data-root\": \"/mnt/docker_ext/\" }" > /etc/docker/daemon.json
+
+cd /mnt/
+chown -R ec2-user .
+
 sudo yum update -y
 sudo yum install git -y
 git clone https://github.com/muleax/social.git
