@@ -23,11 +23,6 @@ UPDATE: выяснилась причина проблем с nginx. Vegeta на
         city: VARCHAR(63)
         birth_date: DATE
         udata: JSON
-
-    table auth:
-        login: VARCHAR(63) PRIMARY KEY
-        password: VARCHAR(63)
-        user_id: INT AUTO_INCREMENT UNIQUE
 ```
 Данные хоть и рандомные, но с честным распределением жителей по городам РФ.
 Фамилии обладают высокой селективностью, имена - низкой. Распределение возрастов - примерно как в инстаграме.
