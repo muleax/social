@@ -26,3 +26,6 @@ class USER_NAME:
 
 class CITY:
     MAX_SIZE = 63
+
+class CHAT:
+    PREVIEW_SIZE: 127

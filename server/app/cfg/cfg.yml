@@ -1,4 +1,4 @@
-db:
+social_db:
   master:
     host: 'social-mysql-1'
     port: 3306
@@ -11,9 +11,20 @@ db:
       password: ''
       slave_user: 'slave_user-1'
       slave_password: 'pwd'
-    - host: 'social-mysql-3'
-      port: 3306
-      user: 'root'
-      password: ''
-      slave_user: 'slave_user-2'
-      slave_password: 'pwd'
+#    - host: 'social-mysql-3'
+#      port: 3306
+#      user: 'root'
+#      password: ''
+#      slave_user: 'slave_user-2'
+#      slave_password: 'pwd'
+chat_db:
+  - host: 'social-chat-mysql-1'
+    port: 3306
+    user: 'root'
+    password: ''
+    shard_id: 0
+  - host: 'social-chat-mysql-2'
+    port: 3306
+    user: 'root'
+    password: ''
+    shard_id: 1

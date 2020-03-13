@@ -18,7 +18,7 @@ def create_test_users(connection, count):
     age_sample_space = get_age_sample_space()
     today_date = datetime.date.today()
 
-    connection.select_db(DATABASE)
+    connection.select_db(SOCIAL_DATABASE)
     cursor = connection.cursor()
 
     sql_batch_size = 20000
