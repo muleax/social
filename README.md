@@ -1,4 +1,4 @@
-Backend courses homework.
+Backend course homework.
 
 ```
 docker-compose up --build
